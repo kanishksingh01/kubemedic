@@ -35,6 +35,16 @@ class CollectorTests(unittest.TestCase):
             self.assertNotIn("patch", command)
             self.assertNotIn("delete", command)
 
+    def test_generic_kubectl_list_is_accepted(self):
+        def generic(command, **kwargs):
+            if "node" in command:
+                return Mock(returncode=0, stdout=json.dumps(NODE))
+            data = dict(EVENTS)
+            data["kind"] = "List"
+            return Mock(returncode=0, stdout=json.dumps(data))
+        snapshot = collect("worker-1", "kind-lab", runner=generic)
+        self.assertEqual(len(snapshot["events"]), 1)
+
     def test_collector_to_diagnosis(self):
         report = collect_and_diagnose("worker-1", "kind-lab", runner=self.runner)
         self.assertIn("disk_pressure", [f["fault"] for f in report["findings"]])

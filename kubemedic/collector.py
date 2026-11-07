@@ -55,7 +55,7 @@ def collect(node, context, *, events_namespace="default", runner=subprocess.run)
         prefix + ["-n", events_namespace, "get", "events",
                   "--field-selector", f"involvedObject.kind=Node,involvedObject.name={node}",
                   "-o", "json", "--request-timeout=5s"], runner=runner)
-    if not isinstance(events_doc, dict) or events_doc.get("kind") != "EventList":
+    if not isinstance(events_doc, dict) or events_doc.get("kind") not in ("EventList", "List"):
         raise CollectionError("response is not an EventList")
     events = []
     for item in events_doc.get("items") or []:
