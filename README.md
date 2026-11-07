@@ -1,13 +1,11 @@
 # KubeMedic
 
-**Evidence-based Kubernetes Node diagnostics** · Independent portfolio project · Private during development
+**Evidence-linked Kubernetes Node diagnostics and conservative disruption planning.** Independent cloud infrastructure portfolio project; not affiliated with AWS. Private during development.
 
-**Start here:** [Read the complete end-to-end walkthrough](docs/END-TO-END.md).
+**Start:** [Full end-to-end guide](docs/END-TO-END.md) · [Release criteria](docs/RELEASE-STATUS.md).
 
-The walkthrough explains Node failures, the evidence collection and rule evaluation flow, concrete examples, live Kind tests, safety guarantees, and what remains unfinished.
+KubeMedic classifies runtime, CNI, DNS, and resource-pressure signatures, retrieves Node/Event information from real Kind, and examines Pod/PDB coverage before proposing further investigation. Its recommendation system is read-only; no node drains or replacements exist in the current product.
 
-**Verified:** Labeled synthetic fault tests, read-only Node/Event collection from real Kind, and reference RBAC permission checks. **Not yet:** live fault-injection accuracy evaluation or automatic repair.
+**Current status:** Working read-only prototype with fixture evaluation and Kind validation; real runtime/CNI fault-injection accuracy remains unproven. AI deferred.
 
-[Unit/fixture CI](.github/workflows/ci.yml) · [Real Kind read-only CI](.github/workflows/kind-integration.yml) · [Architecture](docs/ARCHITECTURE.md)
-
-No production repairs or node mutations are implemented.
+[CI](.github/workflows/ci.yml) · [Kind tests](.github/workflows/kind-integration.yml) · [Architecture](docs/ARCHITECTURE.md)
