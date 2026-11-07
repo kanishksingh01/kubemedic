@@ -1,0 +1,16 @@
+# Kind-only synthetic Event. This does NOT break containerd or mutate Node status.
+apiVersion: v1
+kind: Event
+metadata:
+  name: kubemedic-injected-runtime
+  namespace: default
+type: Warning
+reason: ContainerRuntimeNotReady
+message: "Synthetic training signal: containerd unavailable; runtime failed (no actual outage)"
+involvedObject:
+  apiVersion: v1
+  kind: Node
+  name: kubemedic-worker
+source:
+  component: kubemedic-kind-integration
+count: 1
