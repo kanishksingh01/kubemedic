@@ -1,0 +1,9 @@
+{
+  "pods": [
+    {"namespace": "demo", "name": "critical-0", "owner_kind": "StatefulSet",
+     "matching_pdbs": ["critical-pdb"]}
+  ],
+  "pdbs": [
+    {"namespace": "demo", "name": "critical-pdb", "disruptions_allowed": 0}
+  ]
+}
