@@ -93,8 +93,19 @@ def collect_inventory(node, context, *, runner=subprocess.run):
         owner = owners[0].get("kind") if len(owners) == 1 else None
         if status.get("phase") not in ("Running", "Pending"):
             owner = None
+        volumes = spec.get("volumes") or []
+        if not isinstance(volumes, list):
+            raise CollectionError("Pod volume inventory malformed")
+        has_local_storage = any(isinstance(v, dict) and
+                                any(key in v for key in ("hostPath", "emptyDir"))
+                                for v in volumes)
+        priority_class = spec.get("priorityClassName") or ""
+        if not isinstance(priority_class, str):
+            raise CollectionError("invalid Pod priority class")
         pods.append({"namespace": ns, "name": name, "owner_kind": owner,
-                     "matching_pdbs": matching})
+                     "matching_pdbs": matching,
+                     "has_local_storage": has_local_storage,
+                     "priority_class": priority_class})
     return {"node": node, "pods": pods,
             "pdbs": [{k: p[k] for k in ("namespace", "name", "disruptions_allowed")} for p in pdbs],
             "source": "read-only Kubernetes Pod/PDB API",

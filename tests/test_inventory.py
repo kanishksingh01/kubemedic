@@ -29,6 +29,18 @@ class InventoryTests(unittest.TestCase):
         self.assertTrue(all("get" in c and "patch" not in c for c in commands))
         self.assertFalse(report["action_executed"])
 
+    def test_detect_critical_priority_and_local_storage(self):
+        critical = json.loads(json.dumps(POD))
+        critical["spec"]["priorityClassName"] = "system-cluster-critical"
+        critical["spec"]["volumes"] = [{"name": "work", "emptyDir": {}}]
+        def f(cmd, **kwargs):
+            doc = {"kind": "PodList", "items": [critical]} if "pods" in cmd else {
+                "kind": "PodDisruptionBudgetList", "items": [PDB]}
+            return Mock(returncode=0, stdout=json.dumps(doc))
+        result = collect_inventory(NODE, "kind-kubemedic", runner=f)
+        self.assertTrue(result["pods"][0]["has_local_storage"])
+        self.assertEqual(result["pods"][0]["priority_class"], "system-cluster-critical")
+
     def test_match_expressions(self):
         self.assertTrue(matches_selector({"app": "x", "env": "dev"}, {
             "matchExpressions": [

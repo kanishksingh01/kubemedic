@@ -46,6 +46,21 @@ class SafetyTests(unittest.TestCase):
                                         maintenance_approved=True)
                 self.assertEqual(p["decision"], "HOLD")
 
+    def test_critical_and_local_data_pods_are_held(self):
+        for changes in (
+            {"priority_class": "system-node-critical"},
+            {"priority_class": "system-cluster-critical"},
+            {"has_local_storage": True},
+            {"has_local_storage": "unknown"},
+        ):
+            with self.subTest(changes=changes):
+                pod = {**PODS[0], **changes}
+                plan = evaluate_disruption(DIAG, [pod], PDBS,
+                                           spare_capacity_verified=True,
+                                           maintenance_approved=True)
+                self.assertEqual(plan["decision"], "HOLD")
+                self.assertFalse(plan["action_executed"])
+
     def test_invalid_pdb_is_rejected(self):
         with self.assertRaises(ValueError):
             evaluate_disruption(DIAG, PODS, [{"namespace": "test", "name": "x", "disruptions_allowed": -1}])

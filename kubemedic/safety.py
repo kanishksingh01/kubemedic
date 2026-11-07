@@ -65,6 +65,15 @@ def evaluate_disruption(
         if not isinstance(names, list) or not all(isinstance(x, str) and x for x in names):
             reasons.append(f"{ns}/{name}: PDB selection coverage unknown")
             continue
+        if pod.get("has_local_storage") is True:
+            reasons.append(f"{ns}/{name}: local ephemeral or hostPath storage requires data-loss review")
+        elif pod.get("has_local_storage") not in (False, None):
+            reasons.append(f"{ns}/{name}: local storage inventory uncertain")
+        priority = pod.get("priority_class", "")
+        if not isinstance(priority, str):
+            reasons.append(f"{ns}/{name}: priority class inventory uncertain")
+        elif priority in ("system-node-critical", "system-cluster-critical"):
+            reasons.append(f"{ns}/{name}: critical system priority class")
         if owner not in ("ReplicaSet", "StatefulSet", "ReplicationController"):
             reasons.append(f"{ns}/{name}: unmanaged/static/unknown ownership")
         if len(names) > 1:
