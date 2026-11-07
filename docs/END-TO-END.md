@@ -62,13 +62,17 @@ python3 -m kubemedic.collect_cli --node kubemedic-worker --context kind-kubemedi
 
 No command should target a shared or employer cluster. The current CLI uses the provided kubeconfig identity, while CI separately checks the proposed ServiceAccount permissions.
 
+## New real container-runtime experiment
+
+The [actual containerd failure integration](https://github.com/kanishksingh01/kubemedic/actions/runs/42425849378) temporarily stops the worker's containerd service inside disposable Kind. Kubernetes marks the Node Ready=False with the condition `KubeletNotReady: container runtime is down`. KubeMedic reads the real condition, classifies `container_runtime`, then the test restores containerd and verifies Ready=True. Approximately **49.04 seconds** elapsed through restoration in one controlled run. No production cluster was modified.
+
 ## 5. Reading a report
 
 A diagnosis includes `node`, `status`, `findings`, evidence strings, a recommended next diagnostic step, `requires_operator_approval`, and `action_executed`. Finding severity is a classifier label, not a validated incident priority or certainty score.
 
 **What counts as success:** Identifying the expected fault category in labeled fixtures, preserving ambiguity when multiple clues coexist, handling a healthy live Node without mutation, and refusing invalid API responses.
 
-**What it does not prove:** Precise root-cause attribution or time-to-repair performance for real failures. Live fault injection and diagnostic precision/recall evaluation remain outstanding.
+**What it does not prove:** broad root-cause attribution or time-to-repair performance for real EKS failures. One actual disposable containerd fault is now tested successfully; CNI and other independent fault classes, generalized precision/recall evaluation and production remediation remain outstanding.
 
 ## 6. Code map
 
@@ -84,7 +88,7 @@ A diagnosis includes `node`, `status`, `findings`, evidence strings, a recommend
 
 ## 7. Next milestones
 
-- Introduce controlled Kind failure scenarios with verifiable labels, and compute diagnostic accuracy and false-positive rate.
+- Extend the actual Kind containerd failure scenario with real CNI/DNS faults, independently labeled validation and false-positive measurement.
 - Add read-only signals from pods, CNI health, runtime/Node Problem Detector as appropriate.
 - Design disruption-safety checks for PodDisruptionBudgets, node capacity, workload priority and failure domains.
 - Only consider opt-in recovery after extensive tests; AI explanation remains deferred.

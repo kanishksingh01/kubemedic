@@ -13,6 +13,9 @@ I built a deterministic evidence collector and diagnostic classifier. Its synthe
 
 **Proof:** [Kind Node/Event and Pod/PDB integration](https://github.com/kanishksingh01/kubemedic/actions/runs/42424188440) · [CI classifier evaluation](https://github.com/kanishksingh01/kubemedic/actions/runs/42424188439).
 
+## Actual container-runtime interruption, observed in Kind
+[Successful CI run](https://github.com/kanishksingh01/kubemedic/actions/runs/42425849378): A disposable worker's systemd containerd service was stopped. Kubernetes reported Ready=False and the reason `KubeletNotReady: container runtime is down`. The collector diagnosed `container_runtime` from the real Node condition without changing the Node. After the test harness restarted containerd, the Node returned to Ready=True; the interruption-through-recovery test window measured approximately 49.04 seconds. This is an actual local runtime interruption, distinct from the synthetic Event fixtures; it does not prove accuracy for all EKS failures.
+
 ## Engineering decisions
 - No direct drain, patch, cordon, delete or self-repair path.
 - Multiple signals remain multiple hypotheses instead of a fabricated root cause.
@@ -20,7 +23,7 @@ I built a deterministic evidence collector and diagnostic classifier. Its synthe
 - An operator must validate capacity and maintenance approval independently.
 
 ## Important limitations
-The synthetic runtime Event does not actually break containerd. The classifier has not been evaluated on independently labeled real node outages, and the planner does not cover every Kubernetes eviction invariant. The current live tests use an isolated admin kubeconfig while RBAC permissions are checked separately.
+The earlier synthetic runtime Event does not break containerd, but the newer separate Kind workflow actually stops containerd. The classifier has not been evaluated across broad independently labeled EKS/node outages, and the planner does not cover every Kubernetes eviction invariant. The current live tests use an isolated admin kubeconfig while RBAC permissions are checked separately.
 
 ## What would make this complete
-Add controlled genuine runtime/CNI fault injection, independently labeled outcomes and time-to-diagnosis metrics; prove identity-scoped collection and real eviction-policy behavior under changing PDB/capacity conditions. See [release gates](RELEASE-STATUS.md) and [full walkthrough](END-TO-END.md).
+Expand the now-proven containerd failure test to real CNI/DNS failure injection and additional independently labeled outcomes and time-to-diagnosis metrics; prove identity-scoped collection and real eviction-policy behavior under changing PDB/capacity conditions. See [release gates](RELEASE-STATUS.md) and [full walkthrough](END-TO-END.md).
