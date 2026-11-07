@@ -2,7 +2,7 @@
 
 **Evidence-linked Kubernetes Node diagnostics and conservative disruption planning.** Independent cloud infrastructure portfolio project; not affiliated with AWS. Private during development.
 
-**Start:** [Full end-to-end guide](docs/END-TO-END.md) · [Release criteria](docs/RELEASE-STATUS.md).
+**Engineering case study:** [Problem, design, measured evidence and tradeoffs](docs/CASE-STUDY.md).\n\n**Start:** [Full end-to-end guide](docs/END-TO-END.md) · [Release criteria](docs/RELEASE-STATUS.md).
 
 KubeMedic classifies runtime, CNI, DNS, and resource-pressure signatures, retrieves Node/Event information from real Kind, and examines Pod/PDB coverage before proposing further investigation. Its recommendation system is read-only; no node drains or replacements exist in the current product.
 
