@@ -30,6 +30,16 @@ class DiagnosisTests(unittest.TestCase):
         self.assertEqual(result["status"], "unknown")
         self.assertEqual(result["findings"][0]["fault"], "unknown_not_ready")
 
+    def test_unreachable_is_not_misclassified_as_cni(self):
+        result = diagnose({
+            "node": "worker-1",
+            "conditions": {"Ready": "Unknown"},
+            "events": ["NodeCondition Ready=Unknown NodeStatusUnknown: Kubelet stopped posting node status"],
+        })
+        self.assertEqual(result["status"], "identified_signals")
+        self.assertEqual(result["findings"][0]["fault"], "node_unreachable")
+        self.assertNotIn("cni", [f["fault"] for f in result["findings"]])
+
     def test_invalid_conditions_rejected(self):
         with self.assertRaises(ValueError):
             diagnose({"node": "worker-1", "conditions": {"Ready": True}, "events": []})

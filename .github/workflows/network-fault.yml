@@ -1,0 +1,50 @@
+name: Real Worker Heartbeat Loss (Disposable Kind)
+on:
+  push:
+    branches: [main]
+    paths:
+      - kubemedic/network_fault.py
+      - kubemedic/diagnosis.py
+      - kubemedic/collector.py
+      - kubemedic/runtime_fault.py
+      - .github/workflows/network-fault.yml
+  pull_request:
+    paths:
+      - kubemedic/network_fault.py
+      - kubemedic/diagnosis.py
+      - kubemedic/collector.py
+      - .github/workflows/network-fault.yml
+permissions:
+  contents: read
+concurrency:
+  group: kubemedic-network-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  real-node-unreachable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: helm/kind-action@v1.13.0
+        with:
+          cluster_name: kubemedic
+          config: deploy/kind-config.yaml
+          wait: 120s
+      - name: Diagnose real worker heartbeat interruption and verify recovery
+        run: python -m kubemedic.network_fault
+      - name: Preserve diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubemedic-worker-heartbeat-loss
+          path: network-fault-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Emergency restore and node diagnostics
+        if: failure()
+        run: |
+          docker unpause kubemedic-worker || true
+          kubectl --context kind-kubemedic get node kubemedic-worker -o wide || true

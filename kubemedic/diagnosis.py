@@ -24,6 +24,10 @@ PATTERNS = {
         ("NetworkPluginNotReady", "FailedCreatePodSandBox", "CNI plugin not initialized",
          "cilium agent not ready"),
         "Inspect CNI DaemonSet health, routes and pod sandbox errors"),
+    "node_unreachable": (
+        ("NodeStatusUnknown", "Kubelet stopped posting node status",
+         "Kubelet never posted node status"),
+        "Check node reachability and kubelet heartbeat; cause remains unconfirmed"),
     "dns": (
         ("DNSResolutionFailed", "NodeLocalDNSNotReady", "no such host",
          "SERVFAIL", "DNS query timeout"),
