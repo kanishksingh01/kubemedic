@@ -16,5 +16,13 @@ jobs:
         run: python -m compileall -q kubemedic tests
       - name: Unit tests and labeled cases
         run: python -m unittest discover -s tests -v
+      - name: Evaluate labeled synthetic fault coverage
+        run: python -m kubemedic.evaluate --output synthetic-evaluation.json
+      - name: Save evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubemedic-synthetic-evaluation
+          path: synthetic-evaluation.json
+          retention-days: 14
       - name: Read-only diagnosis smoke
         run: python -m kubemedic.cli examples/faults/runtime.json --output runtime-report.json
