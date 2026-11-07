@@ -1,0 +1,53 @@
+# Reference configuration, not automatically applied by KubeMedic.
+# Node read access is cluster-scoped; Event access is namespaced.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubemedic-observer
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubemedic-node-observer
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubemedic-node-observer
+subjects:
+  - kind: ServiceAccount
+    name: kubemedic-observer
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: kubemedic-node-observer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kubemedic-event-observer
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubemedic-event-observer
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: kubemedic-observer
+    namespace: default
+roleRef:
+  kind: Role
+  name: kubemedic-event-observer
+  apiGroup: rbac.authorization.k8s.io
