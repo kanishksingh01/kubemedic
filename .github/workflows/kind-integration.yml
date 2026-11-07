@@ -1,0 +1,50 @@
+name: Kind Read-Only Integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: kubemedic-kind-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node-observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Create disposable Kind cluster
+        uses: helm/kind-action@v1.13.0
+        with:
+          cluster_name: kubemedic
+          config: deploy/kind-config.yaml
+          wait: 120s
+      - name: Apply read-only RBAC and check permissions
+        run: |
+          kubectl --context kind-kubemedic apply -f deploy/read-only-rbac.yaml
+          kubectl --context kind-kubemedic auth can-i get nodes --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
+          kubectl --context kind-kubemedic -n default auth can-i list events --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
+          kubectl --context kind-kubemedic auth can-i delete nodes --as=system:serviceaccount:default:kubemedic-observer | grep -qx no
+          kubectl --context kind-kubemedic -n default auth can-i patch pods --as=system:serviceaccount:default:kubemedic-observer | grep -qx no
+      - name: Observe a real Kind worker Node through Kubernetes API
+        run: |
+          kubectl --context kind-kubemedic wait --for=condition=Ready node/kubemedic-worker --timeout=180s
+          python -m kubemedic.collect_cli --node kubemedic-worker --context kind-kubemedic --events-namespace default > node-report.json
+          python -c 'import json; r=json.load(open("node-report.json")); assert r["node"]=="kubemedic-worker"; assert r["action_executed"] is False; print(json.dumps(r, indent=2))'
+      - name: Upload read-only node diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubemedic-readonly-node-report
+          path: node-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl --context kind-kubemedic get nodes -o wide || true
+          kubectl --context kind-kubemedic get events -A --sort-by=.lastTimestamp | tail -60 || true
