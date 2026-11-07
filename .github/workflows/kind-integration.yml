@@ -30,6 +30,8 @@ jobs:
           kubectl --context kind-kubemedic -n default auth can-i list events --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
           kubectl --context kind-kubemedic auth can-i delete nodes --as=system:serviceaccount:default:kubemedic-observer | grep -qx no
           kubectl --context kind-kubemedic -n default auth can-i patch pods --as=system:serviceaccount:default:kubemedic-observer | grep -qx no
+          kubectl --context kind-kubemedic auth can-i list pods --all-namespaces --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
+          kubectl --context kind-kubemedic auth can-i list poddisruptionbudgets.policy --all-namespaces --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
       - name: Observe a real Kind worker Node through Kubernetes API
         run: |
           kubectl --context kind-kubemedic wait --for=condition=Ready node/kubemedic-worker --timeout=180s
@@ -41,6 +43,14 @@ jobs:
           trap 'kubectl --context kind-kubemedic -n default delete event kubemedic-injected-runtime --ignore-not-found=true || true' EXIT
           python -m kubemedic.collect_cli --node kubemedic-worker --context kind-kubemedic --events-namespace default > injected-fault-report.json
           python -c 'import json; d=json.load(open("injected-fault-report.json")); faults={f["fault"] for f in d["findings"]}; assert "container_runtime" in faults, d; assert not d["action_executed"]; print(json.dumps(d, indent=2))'
+      - name: Verify read-only Pod/PDB disruption inventory
+        run: |
+          set +e
+          python -m kubemedic.inventory_cli --node kubemedic-worker --context kind-kubemedic > live-inventory.json
+          RESULT=$?
+          set -e
+          test "$RESULT" -eq 3
+          python -c 'import json; d=json.load(open("live-inventory.json")); assert d["inventory"]["node"]=="kubemedic-worker"; assert d["plan"]["decision"]=="HOLD"; assert d["plan"]["action_executed"] is False; print(json.dumps(d, indent=2))'
       - name: Upload read-only node diagnosis
         if: always()
         uses: actions/upload-artifact@v4
@@ -49,6 +59,7 @@ jobs:
           path: |
             node-report.json
             injected-fault-report.json
+            live-inventory.json
           if-no-files-found: ignore
           retention-days: 14
       - name: Diagnostics
