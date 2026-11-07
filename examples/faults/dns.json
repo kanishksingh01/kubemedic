@@ -1,0 +1,1 @@
+{"node":"worker-dns-1","conditions":{"Ready":"True"},"events":["NodeLocalDNSNotReady: DNS query timeout","CoreDNS upstream SERVFAIL"]}

@@ -1,0 +1,1 @@
+{"node":"worker-network-1","conditions":{"Ready":"False","NetworkUnavailable":"True"},"events":["NetworkPluginNotReady: CNI plugin not initialized","FailedCreatePodSandBox: network setup failed"]}

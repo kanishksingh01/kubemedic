@@ -1,0 +1,1 @@
+{"node":"worker-mixed-1","conditions":{"Ready":"False","MemoryPressure":"True"},"events":["NetworkPluginNotReady: CNI plugin not initialized"]}
