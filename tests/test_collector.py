@@ -35,6 +35,22 @@ class CollectorTests(unittest.TestCase):
             self.assertNotIn("patch", command)
             self.assertNotIn("delete", command)
 
+    def test_runtime_node_condition_message_is_diagnostic_evidence(self):
+        sample = dict(NODE)
+        sample["status"] = {"conditions": [{
+            "type": "Ready", "status": "False",
+            "reason": "KubeletNotReady",
+            "message": "container runtime is down; PLEG is not healthy"
+        }]}
+        def fake(command, **kwargs):
+            if "node" in command:
+                return Mock(returncode=0, stdout=json.dumps(sample))
+            return Mock(returncode=0, stdout=json.dumps({"kind": "List", "items": []}))
+        report = collect_and_diagnose("worker-1", "kind-lab", runner=fake)
+        self.assertIn("container_runtime", [f["fault"] for f in report["findings"]])
+        self.assertTrue(any("container runtime is down" in ev for ev in
+                            report["findings"][0]["evidence"]))
+
     def test_generic_kubectl_list_is_accepted(self):
         def generic(command, **kwargs):
             if "node" in command:

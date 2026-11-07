@@ -46,18 +46,25 @@ def collect(node, context, *, events_namespace="default", runner=subprocess.run)
     if not isinstance(status, dict):
         raise CollectionError("invalid Node status")
     conditions = {}
+    condition_evidence = []
     for item in status.get("conditions") or []:
         if isinstance(item, dict) and isinstance(item.get("type"), str):
             value = item.get("status")
             if value in ("True", "False", "Unknown"):
                 conditions[item["type"]] = value
+                if item["type"] == "Ready" and value in ("False", "Unknown"):
+                    reason = str(item.get("reason") or "")[:120]
+                    message = str(item.get("message") or "")[:400]
+                    if reason or message:
+                        condition_evidence.append(
+                            f"NodeCondition Ready={value} {reason}: {message}")
     events_doc = call_json(
         prefix + ["-n", events_namespace, "get", "events",
                   "--field-selector", f"involvedObject.kind=Node,involvedObject.name={node}",
                   "-o", "json", "--request-timeout=5s"], runner=runner)
     if not isinstance(events_doc, dict) or events_doc.get("kind") not in ("EventList", "List"):
         raise CollectionError("response is not an EventList")
-    events = []
+    events = list(condition_evidence)
     for item in events_doc.get("items") or []:
         if not isinstance(item, dict):
             continue

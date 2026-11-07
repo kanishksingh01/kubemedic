@@ -1,0 +1,56 @@
+name: Real Runtime Fault (Disposable Kind)
+on:
+  push:
+    branches: [main]
+    paths:
+      - kubemedic/runtime_fault.py
+      - kubemedic/collector.py
+      - kubemedic/diagnosis.py
+      - deploy/kind-config.yaml
+      - .github/workflows/runtime-fault.yml
+  pull_request:
+    paths:
+      - kubemedic/runtime_fault.py
+      - kubemedic/collector.py
+      - kubemedic/diagnosis.py
+      - .github/workflows/runtime-fault.yml
+permissions:
+  contents: read
+concurrency:
+  group: kubemedic-runtime-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  real-containerd-failure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: helm/kind-action@v1.13.0
+        with:
+          cluster_name: kubemedic
+          config: deploy/kind-config.yaml
+          wait: 120s
+      - name: Verify disposable cluster and container runtime
+        run: |
+          test "$(kubectl config current-context)" = "kind-kubemedic"
+          docker exec kubemedic-worker systemctl is-active containerd | grep -qx active
+          kubectl --context kind-kubemedic wait --for=condition=Ready node/kubemedic-worker --timeout=120s
+      - name: Interrupt and restore actual containerd service on disposable worker
+        run: python -m kubemedic.runtime_fault
+      - name: Upload runtime fault classification and restoration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubemedic-runtime-fault-report
+          path: runtime-fault-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Diagnostics and emergency restoration
+        if: failure()
+        run: |
+          docker exec kubemedic-worker systemctl start containerd || true
+          kubectl --context kind-kubemedic get node kubemedic-worker -o yaml || true
+          docker exec kubemedic-worker journalctl -u kubelet -n 80 --no-pager || true
