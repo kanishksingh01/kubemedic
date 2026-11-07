@@ -32,21 +32,31 @@ jobs:
           kubectl --context kind-kubemedic -n default auth can-i patch pods --as=system:serviceaccount:default:kubemedic-observer | grep -qx no
           kubectl --context kind-kubemedic auth can-i list pods --all-namespaces --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
           kubectl --context kind-kubemedic auth can-i list poddisruptionbudgets.policy --all-namespaces --as=system:serviceaccount:default:kubemedic-observer | grep -qx yes
+      - name: Bind live collector to temporary least-privilege ServiceAccount credentials
+        run: |
+          TOKEN="$(kubectl --context kind-kubemedic -n default create token kubemedic-observer --duration=10m)"
+          kubectl config set-credentials kubemedic-scoped --token="$TOKEN" >/dev/null
+          unset TOKEN
+          kubectl config set-context kubemedic-scoped --cluster=kind-kubemedic --user=kubemedic-scoped --namespace=default >/dev/null
+          kubectl --context kubemedic-scoped auth can-i get nodes | grep -qx yes
+          kubectl --context kubemedic-scoped auth can-i list events -n default | grep -qx yes
+          kubectl --context kubemedic-scoped auth can-i patch nodes | grep -qx no
+          kubectl --context kubemedic-scoped auth can-i delete nodes | grep -qx no
       - name: Observe a real Kind worker Node through Kubernetes API
         run: |
           kubectl --context kind-kubemedic wait --for=condition=Ready node/kubemedic-worker --timeout=180s
-          python -m kubemedic.collect_cli --node kubemedic-worker --context kind-kubemedic --events-namespace default > node-report.json
+          python -m kubemedic.collect_cli --node kubemedic-worker --context kubemedic-scoped --events-namespace default > node-report.json
           python -c 'import json; r=json.load(open("node-report.json")); assert r["node"]=="kubemedic-worker"; assert r["action_executed"] is False; print(json.dumps(r, indent=2))'
       - name: Inject synthetic Node event and verify runtime classification
         run: |
           kubectl --context kind-kubemedic apply -f deploy/synthetic-runtime-event.yaml
           trap 'kubectl --context kind-kubemedic -n default delete event kubemedic-injected-runtime --ignore-not-found=true || true' EXIT
-          python -m kubemedic.collect_cli --node kubemedic-worker --context kind-kubemedic --events-namespace default > injected-fault-report.json
+          python -m kubemedic.collect_cli --node kubemedic-worker --context kubemedic-scoped --events-namespace default > injected-fault-report.json
           python -c 'import json; d=json.load(open("injected-fault-report.json")); faults={f["fault"] for f in d["findings"]}; assert "container_runtime" in faults, d; assert not d["action_executed"]; print(json.dumps(d, indent=2))'
       - name: Verify read-only Pod/PDB disruption inventory
         run: |
           set +e
-          python -m kubemedic.inventory_cli --node kubemedic-worker --context kind-kubemedic > live-inventory.json
+          python -m kubemedic.inventory_cli --node kubemedic-worker --context kubemedic-scoped > live-inventory.json
           RESULT=$?
           set -e
           test "$RESULT" -eq 3
