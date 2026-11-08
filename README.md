@@ -10,6 +10,9 @@ KubeMedic classifies runtime, CNI, DNS, and resource-pressure signatures, retrie
 
 **Runtime fault proof:** [Actual containerd interruption → Ready=False → runtime diagnosis → Ready=True after restart](https://github.com/kanishksingh01/kubemedic/actions/runs/42425849378), approximately 49-second test window.
 
+
+**Additional proof:** [Worker-heartbeat-loss classification and restoration](https://github.com/kanishksingh01/kubemedic/actions/runs/42426445271), and [restricted-ServiceAccount Node/Pod/PDB collection](https://github.com/kanishksingh01/kubemedic/actions/runs/42426765487). Critical-priority Pods and local data-risk now force HOLD.
+
 **Current status:** Working read-only prototype with fixture evaluation and Kind validation; a genuine containerd interruption was diagnosed and recovered in disposable Kind; broader CNI/EKS accuracy remains unproven. AI deferred.
 
 [CI](.github/workflows/ci.yml) · [Kind tests](.github/workflows/kind-integration.yml) · [Architecture](docs/ARCHITECTURE.md)
